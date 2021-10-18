@@ -27,11 +27,13 @@ class DeepLab(nn.Module):
 
 
     def forward(self, input):
-        x, low_level_feat = self.backbone(input)
-        x = self.aspp(x)
-        x = self.decoder(x, low_level_feat)
-
-        return x, low_level_feat
+        # x, low_level_feat = self.backbone(input)
+        # x = self.aspp(x)
+        # x = self.decoder(x, low_level_feat)
+        f16, f8, f4 = self.backbone(input) 
+        # x = self.aspp(f16) 
+        x = self.decoder(f16, f8, f4) 
+        return x, f4
 
 
     def get_1x_lr_params(self):
@@ -58,7 +60,7 @@ if __name__ == "__main__":
     model = DeepLab(backbone='resnet', output_stride=16)
     model.eval()
     input = torch.rand(2, 3, 512, 512)
-    output = model(input)
-    print(output.size())
+    a, output = model(input)
+    print(a.size(), output.size())
 
 

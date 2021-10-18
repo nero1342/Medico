@@ -232,7 +232,7 @@ class Trainer(object):
                 self.integrator.add_dict(losses)
                 self.integrator.add_dict(metrics)
                 if i % 10 == 0 and self.logger:
-                    self.logger.log_images(Fs, Ms, preds, metrics, step)
+                    self.logger.log_images(Fs, Ms, preds, metrics, step, 'val')
 
                 # from wandb import Image as wim 
                 # import wandb 

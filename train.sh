@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=medico_pointrend            # create a short name for your job
-#SBATCH --output=/home/nero/MediaEval2021/Medico/PointRend/slurm2.out      # create a output file
-#SBATCH --error=/home/nero/MediaEval2021/Medico/PointRend/slurm2.err       # create a error file
+#SBATCH --output=/home/nero/MediaEval2021/Medico/Medico/slurm2.out      # create a output file
+#SBATCH --error=/home/nero/MediaEval2021/Medico/Medico/slurm2.err       # create a error file
 #SBATCH --partition=batch          # choose partition
 #SBATCH --gres=gpu:1              # gpu count
 #SBATCH --ntasks=1                 # total number of tasks across all nodes
@@ -22,7 +22,7 @@ echo   Number of Cores/Task Allocated = $SLURM_CPUS_PER_TASK
 cd ~/MediaEval2021/Medico/
 source env_medico/bin/activate
 
-cd ~/MediaEval2021/Medico/PointRend
+cd ~/MediaEval2021/Medico/Medico
 
 # wandb login ae25f573bd73fc9acbde38b14a97f302dc84288e
 

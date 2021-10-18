@@ -26,12 +26,12 @@ class WandB():
         print(text)
         self.log_scalar(f'{prefix.upper()}/{tag}', value, step)
 
-    def log_images(self, Fs, Ms, Es, metrics, step):
+    def log_images(self, Fs, Ms, Es, metrics, step, type = 'train'):
         # print(Fs.shape, Ms.shape, Es.shape)
         B = Fs.size(0)
         class_labels = {1: "foreground"}
     
-        tag = f'Report_{step // 1000}/{step}'
+        tag = f'{type}/Report_{step // 1000}/{step}'
         for metric in metrics: 
             tag += f'_{metric}:{metrics[metric]:2f}'
         # print(tag)
