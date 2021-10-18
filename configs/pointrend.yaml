@@ -1,0 +1,75 @@
+ID: medico
+DESCRIPTION: PointRend
+PRETRAINED: runs/Oct18_02.14.44_medico_PointRend/Oct18_02.14.44_medico_PointRend_checkpoint.pth
+
+AMP: False
+DIST:
+    ENABLE: True
+    BACKEND: nccl
+    URL: tcp://127.0.0.1:12345
+
+OPTIMIZER:
+    LR: 5.0e-2
+    MOMENTUM: 0.9
+    COSINE_DECAY: False
+    WARM_UP_STEPS: 10
+    WEIGHT_DECAY: 1.0e-4
+
+SCHEDULER: # MultiStepLR
+    STEPS: [1000, 2000, 3000]
+    GAMMA: 0.1
+
+LOSS:
+    start_warm: 1000
+    end_warm: 3000
+    top_p: 0.3
+
+TRAIN:
+    RESUME: True
+    GPUS: 1
+    START_STEP: 0
+    TOTAL_STEPS: 20000
+    BATCH_SIZE: 16
+    NUM_WORKERS: 4
+
+DATASETS:    
+  train:
+    -   name: development
+        num_repeat: 1
+        root: ../datasets/Development
+        subset: train
+  val:
+    -   name: development
+        num_repeat: 1
+        root: ../datasets/Test2020
+        subset: val
+
+LOG:
+    SAVE_PATH: runs
+    REPORT_INTERVAL: 50
+    SAVE_IM_INTERVAL: 100
+    SAVE_MODEL_INTERVAL: 1000
+
+MODEL:
+  POINT_HEAD:
+    NAME: StandardPointHead
+    NUM_CLASSES: 2
+    IN_FEATURES: 256
+
+    FC_DIM: 256 
+    NUM_FC: 3
+    CLS_AGNOSTIC_MASK: False  
+    COARSE_PRED_EACH_LAYER: True 
+    
+    # TRAINING
+    TRAIN_NUM_POINTS: 784 # 14 * 14  
+    OVERSAMPLE_RATIO: 3
+    IMPORTANCE_SAMPLE_RATIO: 0.75 
+
+    # INFERENCE
+    SUBDIVISION_STEPS: 2
+    SUBDIVISION_NUM_POINTS: 784
+
+    # COARSE 
+    COARSE_PRED_EACH_LAYER: True 
+    COARSE_SEM_SEG_HEAD_NAME: SemSegFPNHead
