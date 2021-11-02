@@ -27,13 +27,10 @@ class DeepLab(nn.Module):
 
 
     def forward(self, input):
-        # x, low_level_feat = self.backbone(input)
-        # x = self.aspp(x)
-        # x = self.decoder(x, low_level_feat)
-        f16, f8, f4 = self.backbone(input) 
-        # x = self.aspp(f16) 
-        x = self.decoder(f16, f8, f4) 
-        return x, f4
+        x, low_level_feat = self.backbone(input)
+        x = self.aspp(x)
+        x = self.decoder(x, low_level_feat)
+        return x, low_level_feat
 
 
     def get_1x_lr_params(self):

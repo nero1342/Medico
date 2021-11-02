@@ -6,7 +6,7 @@
 #SBATCH --gres=gpu:1              # gpu count
 #SBATCH --ntasks=1                 # total number of tasks across all nodes
 #SBATCH --nodes=1                  # node count
-#SBATCH --cpus-per-task=8          # cpu-cores per task (>1 if multi-threaded tasks)
+#SBATCH --cpus-per-task=1          # cpu-cores per task (>1 if multi-threaded tasks)
 #SBATCH --time=3-0:00:00
 
 echo   Date              = $(date)

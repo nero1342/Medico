@@ -22,14 +22,61 @@ from utils.logger import WandB
 from torch.utils.data import DataLoader, ConcatDataset
 from datasets.image import ImageDataset
 
-from torchmetrics.functional import accuracy, f1, iou
+# from torchmetrics.functional import accuracy, f1, iou
 
+import random
 dist.init_process_group(backend = 'nccl')
 local_rank = torch.distributed.get_rank()
 world_size = torch.distributed.get_world_size()
 
 def worker_init_fn(worker_id): 
     return np.random.seed(torch.initial_seed()%(2**31) + worker_id + local_rank * 100)
+
+def calculate_f_score(precision, recall, base=2):
+    return (1 + base**2)*(precision*recall)/((base**2 * precision) + recall)
+    
+def calculate_all_metrics(preds, gt, cpu=True):
+    '''
+    Args:
+        preds, gt: [batch, C, H, W], here C = 1 for mask
+    Return:
+        {
+            'dice_coeff': np.array[dice-coeff scores]
+            'IoU': np.array[IoU scores]
+            'precision': np.array[Precision scores]
+            'recall': np.array[Recall scores]
+            'F2': np.array[F2 scores]
+        }
+    '''
+
+    batch_size = preds.size(0)
+    y_preds = preds.view(batch_size, -1)
+    y_true = gt.view(batch_size, -1)
+    smooth = 1.0
+    eps = 1e-5
+    intersection = torch.sum(y_preds*y_true, dim=1)
+    union = torch.sum(y_preds, 1) + torch.sum(y_true,1) - intersection
+
+    iou = intersection/(union + eps)
+    dice_coeff = (2.0*intersection + smooth)/(y_preds.sum(1) + y_true.sum(1) + smooth)
+    precision = intersection / (y_true.sum(1)  + eps)
+    recall = intersection / (y_preds.sum(1) + eps)
+    # f2 = calculate_f_score(precision, recall, 2)
+
+    all_scores = {
+        'dice_coeff': dice_coeff.mean(),
+        'IoU': iou.mean(),
+        'precision': precision.mean(),
+        'recall': recall.mean(),
+        # 'F2': f2
+    }
+
+    # if cpu == True:
+    #     for k in all_scores.keys():
+    #         all_scores[k] = all_scores[k].cpu().numpy()
+
+    return all_scores
+
 
 class Trainer(object):
     def __init__(self, cfg, local_rank = 0):
@@ -40,6 +87,10 @@ class Trainer(object):
         self.print_log(cfg)
         print("Use GPU {} for training".format(self.gpu))
         torch.cuda.set_device(self.gpu)
+        
+        torch.manual_seed(14159265)
+        np.random.seed(14159265)
+        random.seed(14159265)
         
         # Model
         print("Building model....")
@@ -200,12 +251,13 @@ class Trainer(object):
                     
                     if step >= cfg.TRAIN.TOTAL_STEPS:
                         break
-                
+            
             # Validate loop 
             self.val() 
             self.forward_val(valid_loader, step)
             # break 
-
+    
+    
     def forward_val(self, valid_loader, step):
         torch.set_grad_enabled(self._is_train)
         with torch.cuda.amp.autocast(enabled=self.cfg.AMP):
@@ -223,17 +275,25 @@ class Trainer(object):
                 logits, history = self.network(Fs, Ms, 0)
                 losses = self.network.module.lossComputer.compute_loss(logits, Ms, step)
                 preds = torch.argmax(F.softmax(logits, dim = 1), dim = 1)
-                acc = accuracy(preds, Ms)
-                iou_score = iou(preds, Ms, reduction = 'none')[1]
-                metrics = {
-                    "Accuracy": acc,
-                    "IoU": iou_score
-                }
+                # acc = accuracy(preds, Ms)
+                # iou_score = iou(preds, Ms, reduction = 'none')[1]
+                # metrics = {
+                #     "Accuracy": acc,
+                #     "IoU": iou_score
+                # }
+                metrics = calculate_all_metrics(preds, Ms)
                 self.integrator.add_dict(losses)
                 self.integrator.add_dict(metrics)
                 if i % 10 == 0 and self.logger:
                     self.logger.log_images(Fs, Ms, preds, metrics, step, 'val')
-
+                
+                tag = ''
+                for loss in losses: 
+                    tag += f'_{loss}:{losses[loss]:2f}'
+                tag += ';'
+                for metric in metrics: 
+                    tag += f'_{metric}:{metrics[metric]:2f}'
+                progressbar.set_description(f'Step: {i}, {tag}')
                 # from wandb import Image as wim 
                 # import wandb 
                 # img_log = []
@@ -321,12 +381,13 @@ class Trainer(object):
             preds = torch.argmax(F.softmax(F.interpolate(
                     logits, scale_factor=4, mode="bilinear", align_corners=False
                 ), dim = 1), dim = 1)
-            acc = accuracy(preds, Ms)
-            iou_score = iou(preds, Ms, reduction = 'none')[1]
-            metrics = {
-                "Accuracy": acc,
-                "IoU": iou_score
-            }
+            # acc = accuracy(preds, Ms)
+            # iou_score = iou(preds, Ms, reduction = 'none')[1]
+            # metrics = {
+            #     "Accuracy": acc,
+            #     "IoU": iou_score
+            # }
+            metrics = calculate_all_metrics(preds, Ms)
             self.integrator.add_dict(metrics)
             
             
@@ -361,8 +422,14 @@ class Trainer(object):
 
         self.scheduler.step()
         pass 
-        # pass
-        return losses['total_loss'].detach().cpu()
+        tag = ''
+        for loss in losses: 
+            tag += f'_{loss}:{losses[loss]:2f}'
+        tag += ';'
+                
+        for metric in metrics: 
+            tag += f'_{metric}:{metrics[metric]:2f}'
+        return tag
 
     def print_log(self, st): 
         if self.local_rank == 0: 

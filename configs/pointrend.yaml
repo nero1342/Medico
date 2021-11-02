@@ -1,6 +1,6 @@
 ID: medico
 DESCRIPTION: PointRend
-PRETRAINED: runs/Oct18_02.14.44_medico_PointRend/Oct18_02.14.44_medico_PointRend_checkpoint.pth
+# PRETRAINED: runs/Oct18_02.14.44_medico_PointRend/Oct18_02.14.44_medico_PointRend_checkpoint.pth
 
 AMP: False
 DIST:
@@ -9,7 +9,7 @@ DIST:
     URL: tcp://127.0.0.1:12345
 
 OPTIMIZER:
-    LR: 5.0e-2
+    LR: 5.0e-4
     MOMENTUM: 0.9
     COSINE_DECAY: False
     WARM_UP_STEPS: 10
@@ -28,7 +28,7 @@ TRAIN:
     RESUME: True
     GPUS: 1
     START_STEP: 0
-    TOTAL_STEPS: 20000
+    TOTAL_STEPS: 100000
     BATCH_SIZE: 16
     NUM_WORKERS: 4
 
@@ -62,13 +62,13 @@ MODEL:
     COARSE_PRED_EACH_LAYER: True 
     
     # TRAINING
-    TRAIN_NUM_POINTS: 784 # 14 * 14  
+    TRAIN_NUM_POINTS: 3136 # 14 * 14  
     OVERSAMPLE_RATIO: 3
     IMPORTANCE_SAMPLE_RATIO: 0.75 
 
     # INFERENCE
     SUBDIVISION_STEPS: 2
-    SUBDIVISION_NUM_POINTS: 784
+    SUBDIVISION_NUM_POINTS: 3136
 
     # COARSE 
     COARSE_PRED_EACH_LAYER: True 
