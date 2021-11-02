@@ -20,16 +20,16 @@ SCHEDULER: # MultiStepLR
     GAMMA: 0.1
 
 LOSS:
-    start_warm: 1000
-    end_warm: 3000
-    top_p: 0.3
+    start_warm: 5000
+    end_warm: 10000
+    top_p: 0.15
 
 TRAIN:
     RESUME: True
     GPUS: 1
     START_STEP: 0
-    TOTAL_STEPS: 100000
-    BATCH_SIZE: 16
+    TOTAL_STEPS: 20000
+    BATCH_SIZE: 8
     NUM_WORKERS: 4
 
 DATASETS:    

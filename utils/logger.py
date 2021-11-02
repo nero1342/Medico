@@ -26,7 +26,7 @@ class WandB():
         print(text)
         self.log_scalar(f'{prefix.upper()}/{tag}', value, step)
 
-    def log_images(self, Fs, Ms, Es, metrics, step, type = 'train'):
+    def log_images(self, Fs, Ms, Es, metrics, step, type = 'train', uncerainty = None):
         # print(Fs.shape, Ms.shape, Es.shape)
         B = Fs.size(0)
         class_labels = {1: "foreground"}
@@ -50,5 +50,9 @@ class WandB():
                 
             })
         for i in range(min(4, B))]
+        if uncerainty is not None:
+          imgs.extend([
+              wandb.Image(uncerainty[i].detach().cpu().numpy())
+          for i in range(min(4, B))])
         wandb.log({tag: imgs}, step = step)
             

@@ -1,7 +1,7 @@
 import math
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
-
+import torch 
 class Bottleneck(nn.Module):
     expansion = 4
 
@@ -69,6 +69,10 @@ class ResNet(nn.Module):
         self.layer4 = self._make_MG_unit(block, 512, blocks=blocks, stride=strides[3], dilation=dilations[3], BatchNorm=BatchNorm)
         self._init_weight()
 
+        self.register_buffer('mean', torch.FloatTensor([0.485, 0.456, 0.406]).view(1,3,1,1))
+        self.register_buffer('std', torch.FloatTensor([0.229, 0.224, 0.225]).view(1,3,1,1))
+
+
     def _make_layer(self, block, planes, blocks, stride=1, dilation=1, BatchNorm=None):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
@@ -106,6 +110,8 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, input):
+        input = (input - self.mean) / self.std
+        
         x = self.conv1(input)
         x = self.bn1(x)
         x = self.relu(x)

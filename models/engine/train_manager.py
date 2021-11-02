@@ -21,6 +21,7 @@ from utils.logger import WandB
 # Dataset
 from torch.utils.data import DataLoader, ConcatDataset
 from datasets.image import ImageDataset
+from utils.uncertainty import calculate_uncertainty
 
 # from torchmetrics.functional import accuracy, f1, iou
 
@@ -274,7 +275,8 @@ class Trainer(object):
                 B, C, H, W = Fs.shape 
                 logits, history = self.network(Fs, Ms, 0)
                 losses = self.network.module.lossComputer.compute_loss(logits, Ms, step)
-                preds = torch.argmax(F.softmax(logits, dim = 1), dim = 1)
+                probs = F.softmax(logits, dim = 1) 
+                preds = torch.argmax(probs, dim = 1)
                 # acc = accuracy(preds, Ms)
                 # iou_score = iou(preds, Ms, reduction = 'none')[1]
                 # metrics = {
@@ -285,7 +287,7 @@ class Trainer(object):
                 self.integrator.add_dict(losses)
                 self.integrator.add_dict(metrics)
                 if i % 10 == 0 and self.logger:
-                    self.logger.log_images(Fs, Ms, preds, metrics, step, 'val')
+                    self.logger.log_images(Fs, Ms, preds, metrics, step, 'val', calculate_uncertainty(probs))
                 
                 tag = ''
                 for loss in losses: 
@@ -394,8 +396,8 @@ class Trainer(object):
             # f1_score = f1(preds.flatten(), y.flatten())
             
             # Log images
-            if step % self.save_im_interval == 0 and self.logger:
-                self.logger.log_images(Fs, Ms, preds, metrics, step)
+            # if step % self.save_im_interval == 0 and self.logger:
+            #     self.logger.log_images(Fs, Ms, preds, metrics, step)
 
             if step % self.report_interval == 0:
                 if self.logger is not None:
