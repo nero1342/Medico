@@ -44,7 +44,7 @@ class ImageDataset(Dataset):
         else:
             self.transform = A.Compose(
                 [
-                    # A.Resize(384, 384),
+                    A.Resize(384, 384),
                     ToTensorV2(),
                 ]
             )
@@ -65,9 +65,10 @@ class ImageDataset(Dataset):
         try:        
             this_mask = np.array(Image.open(msk_path).convert('P')) // 200
         except Exception as e:
-            print(e)
+            # print(e)
             this_mask = np.zeros(this_im.shape[:2]) 
         
+        info['size'] = this_mask.shape
         if self.transform:
             sample = self.transform(image=this_im, mask=this_mask)
             this_im, this_mask = sample['image'], sample['mask']

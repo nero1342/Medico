@@ -87,7 +87,8 @@ class BootstrappedCE(nn.Module):
 
     def forward(self, output, target, it):
         if it < self.start_warm:
-            return F.cross_entropy(output, target), 1.0, -1
+            loss = F.cross_entropy(output, target)
+            return loss, 1.0, loss
 
         raw_loss = F.cross_entropy(output, target, reduction = 'none').view(-1)
         num_pixels = raw_loss.numel()
@@ -105,7 +106,7 @@ class LossComputer():
         pass 
         self.loss_weight = 1
         self.point_loss_weight = 1
-        # self.dice_weight = [0.25, 0.75]
+        self.dice_weight = [0.25, 0.75]
         self.bce = BootstrappedCE(**cfg.LOSS.data)
         self.dice = DiceLoss(weight = torch.tensor([0.25, 0.75])) 
 
@@ -124,7 +125,7 @@ class LossComputer():
             "raw_loss_seg": raw_loss
             }
 
-        losses['total_loss'] = losses['loss_sem_seg'] + losses["loss_dice"] 
+        losses['total_loss'] = losses['loss_sem_seg']  + losses["loss_dice"] 
         return losses
 
     def compute_point_loss(self, point_logits, point_targets, losses = None, step = 0):

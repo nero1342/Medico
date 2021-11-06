@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from models.layers.modules import * 
+# from models.layers.modules import * 
 
 class Decoder(nn.Module):
     def __init__(self, backbone, BatchNorm, num_classes = 2):

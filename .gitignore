@@ -2,6 +2,10 @@
 runs 
 *.out
 *.err 
+*.pth 
+output/*
+wandb/*
+*.ipynb 
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

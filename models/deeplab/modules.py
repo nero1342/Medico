@@ -48,20 +48,6 @@ class FeatureFusionBlock(nn.Module):
 
         return x
         
-class Refine(nn.Module):
-    def __init__(self, inplanes, planes, scale_factor=2):
-        super(Refine, self).__init__()
-        self.convFS = nn.Conv2d(inplanes, planes, kernel_size=(3,3), padding=(1,1), stride=1)
-        self.ResFS = ResBlock(planes, planes)
-        self.ResMM = ResBlock(planes, planes)
-        self.scale_factor = scale_factor
-
-    def forward(self, f, pm):
-        s = self.ResFS(self.convFS(f))
-        m = s + F.interpolate(pm, scale_factor=self.scale_factor, mode='bilinear', align_corners=False)
-        m = self.ResMM(m)
-        return m
-        
 class UpsampleBlock(nn.Module):
     def __init__(self, skip_c, up_c, out_c, scale_factor=2):
         super().__init__()
@@ -69,9 +55,12 @@ class UpsampleBlock(nn.Module):
         self.in_conv = ResBlock(up_c, up_c)
         self.out_conv = ResBlock(up_c, out_c)
         self.scale_factor = scale_factor
+        # self.fuse = FeatureFusionBlock(up_c + up_c, out_c)
+
 
     def forward(self, skip_f, up_f):
         x = self.in_conv(self.skip_conv(skip_f))
         x = x + F.interpolate(up_f, scale_factor=self.scale_factor, mode='bilinear', align_corners=False)
         x = self.out_conv(x)
+        # x = self.fuse(x, F.interpolate(up_f, scale_factor=self.scale_factor, mode='bilinear', align_corners=False))
         return x

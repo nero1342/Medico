@@ -56,9 +56,9 @@ class Decoder(nn.Module):
         return p
 
 class Network(nn.Module):
-    def __init__(self, num_classes = 2):
+    def __init__(self, cfg, num_classes = 2):
         super().__init__()
-        self.encoder = Encoder()
+        self.encoder = Encoder(cfg.MODEL.BACKBONE)
         self.decoder = Decoder(num_classes=num_classes) 
 
     def forward(self, input):

@@ -1,6 +1,5 @@
 ID: medico
-DESCRIPTION: PointRend_NoDiceLoss_Deeplab
-# PRETRAINED: runs/Oct18_02.14.44_medico_PointRend/Oct18_02.14.44_medico_PointRend_checkpoint.pth
+DESCRIPTION: ResUneXt50_POINTREND
 
 AMP: True
 DIST:
@@ -9,7 +8,7 @@ DIST:
     URL: tcp://127.0.0.1:12345
 
 OPTIMIZER:
-    LR: 1.0e-3
+    LR: 5.0e-3
     MOMENTUM: 0.9
     COSINE_DECAY: False
     WARM_UP_STEPS: 10
@@ -20,15 +19,15 @@ SCHEDULER: # MultiStepLR
     GAMMA: 0.1
 
 LOSS:
-    start_warm: 3000
-    end_warm: 10000
+    start_warm: 2000
+    end_warm: 5000
     top_p: 0.15
 
 TRAIN:
     RESUME: True
     GPUS: 1
     START_STEP: 0
-    TOTAL_STEPS: 20000
+    TOTAL_STEPS: 10000
     BATCH_SIZE: 16
     NUM_WORKERS: 4
 
@@ -51,8 +50,9 @@ LOG:
     SAVE_MODEL_INTERVAL: 1000
 
 MODEL:
-    BACKBONE: Resnet
+    BACKBONE: resnext50_32x4d
     POINTREND: True
+    # CBAM: True 
 
     POINT_HEAD:
         NAME: StandardPointHead

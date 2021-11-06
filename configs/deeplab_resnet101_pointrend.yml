@@ -1,6 +1,5 @@
 ID: medico
-DESCRIPTION: PointRend_NoDiceLoss_Deeplab
-# PRETRAINED: runs/Oct18_02.14.44_medico_PointRend/Oct18_02.14.44_medico_PointRend_checkpoint.pth
+DESCRIPTION: DeeplabResnet101_POINTREND
 
 AMP: True
 DIST:
@@ -51,8 +50,9 @@ LOG:
     SAVE_MODEL_INTERVAL: 1000
 
 MODEL:
-    BACKBONE: Resnet
+    BACKBONE: Deeplab
     POINTREND: True
+    # CBAM: True 
 
     POINT_HEAD:
         NAME: StandardPointHead

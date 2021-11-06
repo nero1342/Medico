@@ -55,4 +55,13 @@ class WandB():
               wandb.Image(uncerainty[i].detach().cpu().numpy())
           for i in range(min(4, B))])
         wandb.log({tag: imgs}, step = step)
-            
+
+class PrintLogger():
+    def __init__(self):
+      pass 
+        
+    def log_metrics(self, prefix, tag, value, step = 0):
+        text = f'[{prefix.upper()}] [{tag}]: {value:06f}'
+        print(text)
+
+

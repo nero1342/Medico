@@ -29,6 +29,7 @@ def point_sample(input, point_coords, **kwargs):
     if point_coords.dim() == 3:
         add_dim = True
         point_coords = point_coords.unsqueeze(2)
+
     output = F.grid_sample(input, 2.0 * point_coords - 1.0, **kwargs)
     if add_dim:
         output = output.squeeze(3)
@@ -76,8 +77,9 @@ def get_uncertain_point_coords_with_randomness(
     assert importance_sample_ratio <= 1 and importance_sample_ratio >= 0
     num_boxes = coarse_logits.shape[0]
     num_sampled = int(num_points * oversample_ratio)
-    point_coords = torch.rand(num_boxes, num_sampled, 2, device=coarse_logits.device)
+    point_coords = torch.rand(num_boxes, num_sampled, 2, device=coarse_logits.device, dtype = coarse_logits.dtype)
     point_logits = point_sample(coarse_logits, point_coords, align_corners=False)
+    
     # It is crucial to calculate uncertainty based on the sampled prediction value for the points.
     # Calculating uncertainties of the coarse predictions first and sampling them for points leads
     # to incorrect results.
@@ -94,11 +96,12 @@ def get_uncertain_point_coords_with_randomness(
     point_coords = point_coords.view(-1, 2)[idx.view(-1), :].view(
         num_boxes, num_uncertain_points, 2
     )
+    
     if num_random_points > 0:
         point_coords = torch.cat(
             [
                 point_coords,
-                torch.rand(num_boxes, num_random_points, 2, device=coarse_logits.device),
+                torch.rand(num_boxes, num_random_points, 2, device=coarse_logits.device, dtype = point_coords.dtype),
             ],
             dim=1,
         )
@@ -124,9 +127,9 @@ def get_uncertain_point_coords_on_grid(uncertainty_map, num_points):
 
     num_points = min(H * W, num_points)
     point_indices = torch.topk(uncertainty_map.view(R, H * W), k=num_points, dim=1)[1]
-    point_coords = torch.zeros(R, num_points, 2, dtype=torch.float, device=uncertainty_map.device)
-    point_coords[:, :, 0] = w_step / 2.0 + (point_indices % W).to(torch.float) * w_step
-    point_coords[:, :, 1] = h_step / 2.0 + (point_indices // W).to(torch.float) * h_step
+    point_coords = torch.zeros(R, num_points, 2, dtype=uncertainty_map.dtype, device=uncertainty_map.device)
+    point_coords[:, :, 0] = w_step / 2.0 + (point_indices % W).to(uncertainty_map.dtype) * w_step
+    point_coords[:, :, 1] = h_step / 2.0 + (point_indices // W).to(uncertainty_map.dtype) * h_step
     return point_indices, point_coords
 
 def point_sample_fine_grained_features(features_list, feature_scales, boxes, point_coords):

@@ -215,7 +215,7 @@ class Trainer(object):
         cfg = self.cfg 
 
         # self.report_interval = cfg.LOG.REPORT_INTERVAL
-        self.report_interval = len(self.train_loader)
+        self.report_interval = cfg.LOG.REPORT_INTERVAL
         self.save_im_interval = cfg.LOG.SAVE_IM_INTERVAL 
         self.save_model_interval = cfg.LOG.SAVE_MODEL_INTERVAL
 
@@ -239,7 +239,6 @@ class Trainer(object):
             # Crucial for randomness! 
             train_sampler.set_epoch(epoch)
             # Train loop 
-            
             self.train()
             progressbar = tqdm(train_loader) if self.local_rank == 0 else train_loader
             for data in progressbar:
@@ -260,6 +259,10 @@ class Trainer(object):
     
     
     def forward_val(self, valid_loader, step):
+        self.last_time = time.time()
+        self.integrator.finalize('train', step)
+        self.integrator.reset_except_hooks()
+
         torch.set_grad_enabled(self._is_train)
         with torch.cuda.amp.autocast(enabled=self.cfg.AMP):
             progressbar = tqdm(valid_loader) if self.local_rank == 0 else valid_loader
