@@ -120,17 +120,17 @@ class Trainer(object):
         self.integrator = Integrator(self.logger, distributed=True, local_rank=local_rank, world_size=cfg.TRAIN.GPUS)
 
         # Optimizer & Scheduler
-        self.optimizer = optim.SGD(
+        self.optimizer = optim.AdamW(
             filter(lambda p: p.requires_grad, self.network.parameters()), 
             lr=cfg.OPTIMIZER.LR, 
-            momentum=0.9,
+            # momentum=0.9,
             weight_decay=cfg.OPTIMIZER.WEIGHT_DECAY
         )
 
         # Scheduler 
         self.scheduler = optim.lr_scheduler.MultiStepLR(self.optimizer, cfg.SCHEDULER.STEPS, cfg.SCHEDULER.GAMMA)
-
-        # 
+        self.base_lr = self.cfg.OPTIMIZER.LR 
+        #   
         self.prepare_dataset()
         self.process_pretrained_model()
 
@@ -196,13 +196,14 @@ class Trainer(object):
 
     def process_pretrained_model(self):
         cfg = self.cfg
-
+        self.pretrain_step = 0
         self.step = cfg.TRAIN.START_STEP
         self.epoch = 0
 
         if cfg.TRAIN.RESUME and cfg.PRETRAINED:
-            self.step = self.load_model(cfg.PRETRAINED)
-            self.epoch = int(np.ceil(self.step / len(self.train_loader)))
+            self.pretrain_step = self.load_model(cfg.PRETRAINED)
+            # self.step = self.load_model(cfg.PRETRAINED)
+            # self.epoch = int(np.ceil(self.step / len(self.train_loader)))
             self.print_log('Load pretrained VOS model from {}.'.format(cfg.PRETRAINED))
             self.print_log('Resume from step {}'.format(self.step))
 
@@ -242,6 +243,9 @@ class Trainer(object):
             self.train()
             progressbar = tqdm(train_loader) if self.local_rank == 0 else train_loader
             for data in progressbar:
+                    if self.pretrain_step > step:
+                        step += 1 
+                        continue 
                     # continue 
                     step += 1
                     losses = self.forward_sample(data, step)
@@ -253,8 +257,9 @@ class Trainer(object):
                         break
             
             # Validate loop 
-            self.val() 
-            self.forward_val(valid_loader, step)
+            if self.pretrain_step <= step:
+                self.val() 
+                self.forward_val(valid_loader, step)
             # break 
     
     
@@ -280,12 +285,7 @@ class Trainer(object):
                 losses = self.network.module.lossComputer.compute_loss(logits, Ms, step)
                 probs = F.softmax(logits, dim = 1) 
                 preds = torch.argmax(probs, dim = 1)
-                # acc = accuracy(preds, Ms)
-                # iou_score = iou(preds, Ms, reduction = 'none')[1]
-                # metrics = {
-                #     "Accuracy": acc,
-                #     "IoU": iou_score
-                # }
+      
                 metrics = calculate_all_metrics(preds, Ms)
                 self.integrator.add_dict(losses)
                 self.integrator.add_dict(metrics)
@@ -299,69 +299,14 @@ class Trainer(object):
                 for metric in metrics: 
                     tag += f'_{metric}:{metrics[metric]:2f}'
                 progressbar.set_description(f'Step: {i}, {tag}')
-                # from wandb import Image as wim 
-                # import wandb 
-                # img_log = []
-                # class_labels = {1: "foreground"}
         
-                # for (id, sem_seg_logits, uncertainty_map, point_coords) in history:
-                #     H, W = uncertainty_map.shape[-2:]
-                #     point_coords = point_coords.reshape(-1, 2).detach().cpu()
-                #     point_coords[:, 0] *= W
-                #     point_coords[:, 1] *= H
-                #     cur_logits = F.interpolate(sem_seg_logits, size = logits.shape[2:])
-                #     cur_preds = torch.argmax(F.softmax(cur_logits, dim = 1), dim = 1)
-                    
-                #     acc = accuracy(cur_preds, Ms)
-                #     iou_score = iou(cur_preds, Ms, reduction = 'none')[1]
-                #     metrics = {
-                #         f"Accuracy_{id}": acc,
-                #         f"IoU_{id}": iou_score
-                #     }
-                #     self.integrator.add_dict(metrics)
-                    
-                #     if i % 10 > 0:
-                #         continue 
-                    
-                #     import matplotlib.pyplot as plt 
-                #     plt.imshow(uncertainty_map.detach().cpu()[0, 0])
-                #     plt.scatter(point_coords[:, 0], point_coords[:, 1], s = 1)
-                #     plt.savefig('temp.png') 
-                #     plt.show()
-                #     # print(Fs.shape, cur_preds.shape, Ms.shape)
-                #     img_log.extend([wim(
-                #             Fs.permute(0, 2, 3, 1).detach().cpu().numpy()[0],
-                #             caption = str(metrics),
-                #             masks = {
-                #                 "prediction": {
-                #                     "mask_data": cur_preds.detach().cpu().numpy()[0], 
-                #                     "class_labels": class_labels 
-                #                 },
-                #                 "ground truth": {
-                #                     "mask_data": Ms.detach().cpu().numpy()[0], 
-                #                     "class_labels": class_labels 
-                #                 },
-                #             }
-                #         ),
-                #         wim(
-                #             uncertainty_map.detach().cpu().numpy()[0, 0]
-                #         ),
-                #         wim(
-                #             'temp.png'
-                #         )
-                #         ]
-                #     )
-                # if i % 10 > 0:
-                #     continue 
-                # wandb.log({f"Validation/{step}/{i}": img_log}, step = step)
-
             self.integrator.finalize('valid', step)
             self.integrator.reset_except_hooks()
 
     def forward_sample(self, data, step):
         now_lr = adjust_learning_rate(
             optimizer=self.optimizer, 
-            base_lr=self.cfg.OPTIMIZER.LR, 
+            base_lr=self.base_lr, 
             p=0.9, 
             itr=step, 
             max_itr=self.cfg.TRAIN.TOTAL_STEPS, 
@@ -384,23 +329,12 @@ class Trainer(object):
 
             # Compute metric 
             preds = torch.argmax(F.softmax(F.interpolate(
-                    logits, scale_factor=4, mode="bilinear", align_corners=False
+                    logits, size = (Ms.shape[-2:]), mode="bilinear", align_corners=False
                 ), dim = 1), dim = 1)
-            # acc = accuracy(preds, Ms)
-            # iou_score = iou(preds, Ms, reduction = 'none')[1]
-            # metrics = {
-            #     "Accuracy": acc,
-            #     "IoU": iou_score
-            # }
+
             metrics = calculate_all_metrics(preds, Ms)
             self.integrator.add_dict(metrics)
             
-            
-            # f1_score = f1(preds.flatten(), y.flatten())
-            
-            # Log images
-            # if step % self.save_im_interval == 0 and self.logger:
-            #     self.logger.log_images(Fs, Ms, preds, metrics, step)
 
             if step % self.report_interval == 0:
                 if self.logger is not None:
@@ -425,7 +359,9 @@ class Trainer(object):
             losses['total_loss'].backward() 
             self.optimizer.step()
 
-        self.scheduler.step()
+        if step in self.cfg.SCHEDULER.STEPS:
+            self.base_lr *= self.cfg.SCHEDULER.GAMMA
+        # self.scheduler.step()
         pass 
         tag = ''
         for loss in losses: 

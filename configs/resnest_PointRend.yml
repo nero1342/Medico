@@ -1,5 +1,5 @@
 ID: medico
-DESCRIPTION: ResUnet_CBAM_POINTREND
+DESCRIPTION: ResUneSt50_PointRend
 
 AMP: True
 DIST:
@@ -15,7 +15,7 @@ OPTIMIZER:
     WEIGHT_DECAY: 1.0e-4
 
 SCHEDULER: # MultiStepLR
-    STEPS: [1000, 2000, 3000]
+    STEPS: [4000]
     GAMMA: 0.1
 
 LOSS:
@@ -50,9 +50,9 @@ LOG:
     SAVE_MODEL_INTERVAL: 1000
 
 MODEL:
-    BACKBONE: resnet50
+    BACKBONE: resnest50
     POINTREND: True
-    # CBAM: True 
+    FUSE_CBAM: False 
 
     POINT_HEAD:
         NAME: StandardPointHead

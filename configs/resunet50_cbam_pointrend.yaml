@@ -1,5 +1,5 @@
 ID: medico
-DESCRIPTION: ResUnet50
+DESCRIPTION: ResUneXt50_CBAM_POINTREND
 
 AMP: True
 DIST:
@@ -8,14 +8,15 @@ DIST:
     URL: tcp://127.0.0.1:12345
 
 OPTIMIZER:
-    LR: 5.0e-3
+    LR: 1.0e-4
     MOMENTUM: 0.9
     COSINE_DECAY: False
     WARM_UP_STEPS: 10
     WEIGHT_DECAY: 1.0e-4
 
+
 SCHEDULER: # MultiStepLR
-    STEPS: [1000, 2000, 3000]
+    STEPS: [4000]
     GAMMA: 0.1
 
 LOSS:
@@ -28,7 +29,7 @@ TRAIN:
     GPUS: 1
     START_STEP: 0
     TOTAL_STEPS: 10000
-    BATCH_SIZE: 16
+    BATCH_SIZE: 8
     NUM_WORKERS: 4
 
 DATASETS:    
@@ -50,9 +51,9 @@ LOG:
     SAVE_MODEL_INTERVAL: 1000
 
 MODEL:
-    BACKBONE: resnet50
-    POINTREND: False
-    # CBAM: True 
+    BACKBONE: resnext50_32x4d
+    POINTREND: True
+    FUSE_CBAM: True
 
     POINT_HEAD:
         NAME: StandardPointHead

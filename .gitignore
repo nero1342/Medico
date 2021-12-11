@@ -3,10 +3,10 @@ runs
 *.out
 *.err 
 *.pth 
-output/*
+output*/*
 wandb/*
 *.ipynb 
-
+submissions/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

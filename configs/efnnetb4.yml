@@ -1,5 +1,5 @@
 ID: medico
-DESCRIPTION: DeeplabResnet101_POINTREND
+DESCRIPTION: EfnNetB6_CBAM_POINTREND
 
 AMP: True
 DIST:
@@ -8,27 +8,28 @@ DIST:
     URL: tcp://127.0.0.1:12345
 
 OPTIMIZER:
-    LR: 1.0e-3
+    LR: 1.0e-4
     MOMENTUM: 0.9
     COSINE_DECAY: False
     WARM_UP_STEPS: 10
     WEIGHT_DECAY: 1.0e-4
 
+
 SCHEDULER: # MultiStepLR
-    STEPS: [1000, 2000, 3000]
+    STEPS: [4000]
     GAMMA: 0.1
 
 LOSS:
-    start_warm: 3000
-    end_warm: 10000
+    start_warm: 2000
+    end_warm: 5000
     top_p: 0.15
 
 TRAIN:
     RESUME: True
     GPUS: 1
     START_STEP: 0
-    TOTAL_STEPS: 20000
-    BATCH_SIZE: 16
+    TOTAL_STEPS: 10000
+    BATCH_SIZE: 8
     NUM_WORKERS: 4
 
 DATASETS:    
@@ -50,16 +51,16 @@ LOG:
     SAVE_MODEL_INTERVAL: 1000
 
 MODEL:
-    BACKBONE: Deeplab
+    BACKBONE: efficientnet_b6
     POINTREND: True
-    # CBAM: True 
+    FUSE_CBAM: True
 
     POINT_HEAD:
         NAME: StandardPointHead
         NUM_CLASSES: 2
-        IN_FEATURES: 256
+        IN_FEATURES: 72
 
-        FC_DIM: 256 
+        FC_DIM: 72
         NUM_FC: 3
         CLS_AGNOSTIC_MASK: False  
         COARSE_PRED_EACH_LAYER: True 
@@ -70,7 +71,7 @@ MODEL:
         IMPORTANCE_SAMPLE_RATIO: 0.75 
 
         # INFERENCE
-        SUBDIVISION_STEPS: 2
+        SUBDIVISION_STEPS: 3
         SUBDIVISION_NUM_POINTS: 3136
 
         # COARSE 

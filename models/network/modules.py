@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models
 
-from models.deeplab.cbam import CBAM 
+from models.network.cbam import CBAM 
 
 class ResBlock(nn.Module):
     def __init__(self, indim, outdim=None):
@@ -49,18 +49,22 @@ class FeatureFusionBlock(nn.Module):
         return x
         
 class UpsampleBlock(nn.Module):
-    def __init__(self, skip_c, up_c, out_c, scale_factor=2):
+    def __init__(self, skip_c, up_c, out_c, fuse = False, scale_factor=2):
         super().__init__()
         self.skip_conv = nn.Conv2d(skip_c, up_c, kernel_size=3, padding=1)
         self.in_conv = ResBlock(up_c, up_c)
-        self.out_conv = ResBlock(up_c, out_c)
         self.scale_factor = scale_factor
-        # self.fuse = FeatureFusionBlock(up_c + up_c, out_c)
+        self.fuse = FeatureFusionBlock(up_c + up_c, out_c)
+        self.out_conv = ResBlock(up_c, out_c)
 
+        self.used_fuse = fuse 
 
     def forward(self, skip_f, up_f):
         x = self.in_conv(self.skip_conv(skip_f))
-        x = x + F.interpolate(up_f, scale_factor=self.scale_factor, mode='bilinear', align_corners=False)
-        x = self.out_conv(x)
-        # x = self.fuse(x, F.interpolate(up_f, scale_factor=self.scale_factor, mode='bilinear', align_corners=False))
+        if not self.used_fuse:
+            x = x + F.interpolate(up_f, scale_factor=self.scale_factor, mode='bilinear', align_corners=False)
+            x = self.out_conv(x)
+        else:
+            x = self.fuse(x, F.interpolate(up_f, scale_factor=self.scale_factor, mode='bilinear', align_corners=False))
+        
         return x

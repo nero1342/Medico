@@ -1,6 +1,5 @@
 ID: medico
-DESCRIPTION: ResUneXt50_POINTREND
-# PRETRAINED: /home/nero/MediaEval2021/Medico/Medico/runs/Nov07_09.34.45_medico_ResUneXt50_POINTREND/Nov07_09.34.45_medico_ResUneXt50_POINTREND_4000.pth
+DESCRIPTION: ResUneXt50
 
 AMP: True
 DIST:
@@ -52,7 +51,7 @@ LOG:
 
 MODEL:
     BACKBONE: resnext50_32x4d
-    POINTREND: True
+    POINTREND: False
     FUSE_CBAM: False 
 
     POINT_HEAD:

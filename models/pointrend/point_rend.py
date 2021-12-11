@@ -10,8 +10,8 @@ from models.pointrend.point_features import (
 )
 
 from models.layers.loss import LossComputer
-from models.deeplab.deeplab import DeepLab
-from models.deeplab.network import Network
+# from models.deeplab.deeplab import DeepLab
+from models.network.network import Network
 from utils.uncertainty import calculate_uncertainty
 class PointRend(nn.Module):
     """
@@ -22,10 +22,7 @@ class PointRend(nn.Module):
     def __init__(self, cfg):
         super().__init__()
 
-        if cfg.MODEL.BACKBONE == 'Deeplab':
-            self.coarse_sem_seg_head = DeepLab()
-        else:    
-            self.coarse_sem_seg_head = Network(cfg)
+        self.coarse_sem_seg_head = Network(cfg)
         
         self.use_pointrend = cfg.MODEL.POINTREND
         self._init_point_head(cfg)

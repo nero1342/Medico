@@ -23,23 +23,23 @@ np.random.seed(14159265)
 random.seed(14159265)
 
 # Config 
-config = Struct(yaml.load(open('configs/resunet_cbam_pointrend.yaml', 'r'), Loader=yaml.Loader))
+config = Struct(yaml.load(open('/home/nero/MediaEval2021/Medico/Medico/configs/resunet50.yaml', 'r'), Loader=yaml.Loader))
 print(config)
 
 dataset_root = '../datasets/Test2021'
 dataset = ImageDataset(dataset_root, subset='val')
 
-dataloader = DataLoader(dataset, batch_size = 1, shuffle = False, num_workers = 2, pin_memory=True)
+dataloader = DataLoader(dataset, batch_size = 1, shuffle = False, num_workers = 1, pin_memory=True)
 
-pretrained_path = '/home/nero/MediaEval2021/Medico/Medico/ResUNet_CBAM_PointRend.pth'
+pretrained_path = '/home/nero/MediaEval2021/Medico/Medico/runs/Nov14_18.14.54_medico_ResUneXt50/Nov14_18.14.54_medico_ResUneXt50_10000.pth'
 
 network = PointRend(config).cuda()
-network.load_state_dict(torch.load(pretrained_path))
+print(network.load_state_dict(torch.load(pretrained_path)))
 
 network.eval()
 network.eval_()
 
-wandb.init(project='visualize_output', id = config.DESCRIPTION)
+wandb.init(project='visualize_medico', id = config.DESCRIPTION)
 
 output = 'output/' + config.DESCRIPTION + '/mask'
 viz = 'output/' + config.DESCRIPTION + '/viz'
@@ -62,28 +62,28 @@ total_process_time = 0
 for i, data in tqdm(enumerate(dataloader), total = len(dataloader)):
     Fs = data['img'].cuda()
     Ms = data['mask'].cuda()
-    size = data['info']['size'][0] 
+    size = (data['info']['size'][0][0].item(), data['info']['size'][1][0].item())
     name = data['info']['name'][0].replace('.jpg', '.png')
     
     process_begin = time.time()
     logits, history = network(Fs, Ms, 0)
+    total_process_time += time.time() - process_begin
     logits = F.softmax(F.interpolate(logits, size = size, mode = 'bilinear', align_corners=False), dim = 1)
     preds = torch.argmax(logits, dim = 1)[0].cpu().numpy().astype(np.uint8)
     # print(preds.shape, preds.dtype)
-    total_process_time += time.time() - process_begin
         
     # Save 
     mask = Image.fromarray(preds * 255).convert('P')
-    # mask.save(f'{output}/{name}')
+    mask.save(f'{output}/{name}')
 
     img = (F.interpolate(Fs, size = size, mode = 'bilinear', align_corners=False)[0].permute(1, 2, 0).detach().cpu().numpy() * 255).astype(np.uint8)
     overlay = Image.fromarray(overlay_davis(img, preds * 2, palette))
-    # overlay.save(f'{viz}/{name}')
+    overlay.save(f'{viz}/{name}')
 
     pr = logits[0, 1].detach().cpu().numpy() * 255
     # print(pr.shape, np.max(pr))
     pr = Image.fromarray(pr.astype(np.uint8)).convert('P')
-    # pr.save(f'{prob}/{name}')        
+    pr.save(f'{prob}/{name}')        
 
     x = f'Test_{i // 20}/{name}'
     wandb.log({x : [
@@ -96,11 +96,6 @@ for i, data in tqdm(enumerate(dataloader), total = len(dataloader)):
         wandb.Image(calculate_uncertainty(logits).detach().cpu().numpy()[0], caption = 'probs'),
             ]
         })
-
-
-
-
-
 
 total_datasets = len(dataset)
 print('Total processing time: ', total_process_time)
